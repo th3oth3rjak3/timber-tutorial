@@ -38,6 +38,8 @@ add_executable(timber
         src/GameObject.hpp
         src/Main.cpp
         src/Random.hpp
+        src/Startup.cpp
+        src/Startup.hpp
         src/StationaryObject.cpp
         src/StationaryObject.hpp
         src/TextureManager.cpp
