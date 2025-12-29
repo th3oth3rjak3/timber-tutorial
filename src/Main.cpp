@@ -1,10 +1,12 @@
 #include <SFML/Graphics.hpp>
 #include <optional>
 
+#include "BackgroundImage.hpp"
 #include "Bee.hpp"
 #include "Cloud.hpp"
 #include "Random.hpp"
 #include "TextureManager.hpp"
+#include "Tree.hpp"
 
 constexpr sf::Vector2u WINDOW_SIZE{1920u, 1080u};
 const sf::VideoMode VIDEO_MODE{WINDOW_SIZE};
@@ -16,27 +18,31 @@ int main() {
     TextureManager textures;
     textures.loadAll();
 
-    auto backgroundSprite = sf::Sprite{textures.get(TextureId::Background)};
-    backgroundSprite.setPosition({0, 0});
+    std::vector<std::unique_ptr<GameObject>> gameObjects;
 
-    auto treeSprite = sf::Sprite{textures.get(TextureId::Tree)};
-    treeSprite.setPosition({810, 0});
+    // background image
+    gameObjects.emplace_back(std::make_unique<BackgroundImage>(
+        textures.get(TextureId::Background), window));
+    gameObjects.back()->spawn();
 
-    auto bee = Bee(textures.get(TextureId::Bee), window);
-    bee.setPosition(0, 800);
-
-    std::vector<Cloud> clouds;
-    clouds.reserve(3);
-
-    clouds.emplace_back(textures.get(TextureId::Cloud), window);
-    clouds.emplace_back(textures.get(TextureId::Cloud), window);
-    clouds.emplace_back(textures.get(TextureId::Cloud), window);
-
-    for (auto& cloud : clouds) {
+    // clouds
+    for (int i = 0; i < 3; i++) {
+        gameObjects.emplace_back(
+            std::make_unique<Cloud>(textures.get(TextureId::Cloud), window));
         auto x = randomFloat(-300, 1920);
         auto y = randomFloat(0, 150);
-        cloud.activate({x, y});
+        gameObjects.back()->spawn({x, y});
     }
+
+    // tree
+    gameObjects.emplace_back(
+        std::make_unique<Tree>(textures.get(TextureId::Tree), window));
+    gameObjects.back()->spawn();
+
+    // bee
+    gameObjects.emplace_back(
+        std::make_unique<Bee>(textures.get(TextureId::Bee), window));
+    gameObjects.back()->spawn();
 
     sf::Clock clock;
     while (window.isOpen()) {
@@ -52,51 +58,26 @@ int main() {
             }
         }
 
-        /*
-         * Update the scene
-         */
+        // Update state
 
         sf::Time dt = clock.restart();
 
-        if (!bee.isActive()) {
-            bee.activate();
-        } else {
-            bee.update(dt);
-            // Bee is offscreen to the left.
-            if (bee.getPosition().x < -100) {
-                bee.deactivate();
-            }
-        }
-
-        for (auto& cloud : clouds) {
-            if (!cloud.isActive()) {
-                cloud.activate();
+        for (auto& obj : gameObjects) {
+            if (obj->shouldRespawn()) {
+                obj->spawn();
             } else {
-                cloud.update(dt);
-                if (cloud.getPosition().x > 1920) {
-                    cloud.deactivate();
-                }
+                obj->update(dt);
             }
         }
 
-        /*
-         * Display the scene
-         */
+        // Render
 
         window.clear();
 
-        // objects must be drawn back to front
-        window.draw(backgroundSprite);
-
-        // clouds go behind the tree.
-        for (auto& cloud : clouds) {
-            cloud.render();
+        for (auto& obj : gameObjects) {
+            obj->render();
         }
 
-        window.draw(treeSprite);
-
-        // bee goes in front of the tree to distract the player.
-        bee.render();
         window.display();
     }
 }

@@ -7,19 +7,21 @@
 Cloud::Cloud(const sf::Texture& texture, sf::RenderWindow& window)
     : GameObject(texture, window) {}
 
-void Cloud::activate() {
-    speed = randomFloat(MIN_SPEED, MAX_SPEED);
+void Cloud::spawn() {
     height = randomFloat(MIN_HEIGHT, MAX_HEIGHT);
-    setPosition(-300, height);
-    active = true;
+    spawn({-300, height});
 }
 
-void Cloud::activate(const sf::Vector2f& position) {
+void Cloud::spawn(const sf::Vector2f& position) {
     speed = randomFloat(MIN_SPEED, MAX_SPEED);
     setPosition(position.x, position.y);
-    active = true;
 }
 
 void Cloud::update(const sf::Time deltaTime) {
     sprite.move({speed * deltaTime.asSeconds(), 0.0f});
+}
+
+bool Cloud::shouldRespawn() const {
+    auto windowWidth = window.getSize().x;
+    return getPosition().x >= (windowWidth + 50);
 }

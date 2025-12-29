@@ -14,15 +14,3 @@ sf::Vector2f GameObject::getPosition() const {
 void GameObject::render() const {
     window.draw(sprite);
 }
-
-bool GameObject::isActive() const {
-    return active;
-}
-
-void GameObject::activate() {
-    active = true;
-}
-
-void GameObject::deactivate() {
-    active = false;
-}

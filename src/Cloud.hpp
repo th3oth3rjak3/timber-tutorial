@@ -15,12 +15,18 @@ public:
     explicit Cloud(const sf::Texture& texture, sf::RenderWindow& window);
 
     // Set the start position for the cloud and the appropriate speed.
-    void activate() override;
+    void spawn() override;
 
-    // Activate the cloud at a specific position (first-frame or custom
+    // Spawn the cloud at a specific position (first-frame or custom
     // placement)
-    void activate(const sf::Vector2f& position);
+    void spawn(const sf::Vector2f& position) override;
+
+    // True when the cloud has gone off the right side of the screen.
+    bool shouldRespawn() const override;
+
+    // Hide the cloud, currently unused.
+    void despawn() override {};
 
     // Update the position of the cloud based on the elapsed delta time.
-    void update(const sf::Time deltaTime);
+    void update(const sf::Time deltaTime) override;
 };

@@ -6,7 +6,6 @@ class GameObject {
 protected:
     sf::Sprite sprite;
     sf::RenderWindow& window;
-    bool active = false;
     float speed = 0.0f;
     float height = 0.0f;
 
@@ -22,14 +21,21 @@ public:
     // Render the sprite on the screen.
     void render() const;
 
-    // If the sprite is actively moving, this will be true, otherwise false.
-    bool isActive() const;
+    // Set the game object position and speed to defaults.
+    virtual void spawn() = 0;
 
-    // Activate the game object to perform some action.
-    virtual void activate();
+    // Set the game object position to the provided value.
+    virtual void spawn(const sf::Vector2f& position) = 0;
 
-    // Deactivate the game object to stop some action.
-    virtual void deactivate();
+    // Despawn the game object so it's not visible on the screen.
+    virtual void despawn() = 0;
+
+    // Determines when the game object should be respawned to its default
+    // starting point.
+    virtual bool shouldRespawn() const = 0;
+
+    // Update the state for the game object.
+    virtual void update(const sf::Time deltaTime) = 0;
 
     virtual ~GameObject() = default;
 };
