@@ -28,7 +28,16 @@ FetchContent_MakeAvailable(SFML)
 # Executable
 # -----------------------------
 add_executable(timber
-        src/main.cpp
+        src/Main.cpp
+        src/GameObject.cpp
+        src/GameObject.hpp
+        src/Cloud.cpp
+        src/Cloud.hpp
+        src/Bee.cpp
+        src/Bee.hpp
+        src/Random.hpp
+        src/TextureManager.cpp
+        src/TextureManager.hpp
 )
 
 target_link_libraries(timber
@@ -46,12 +55,12 @@ set(ASSET_DIRS
         fonts
 )
 
-foreach(dir IN LISTS ASSET_DIRS)
+foreach (dir IN LISTS ASSET_DIRS)
     add_custom_command(
             TARGET timber POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/${dir}
             $<TARGET_FILE_DIR:timber>/${dir}
     )
-endforeach()
+endforeach ()
 
