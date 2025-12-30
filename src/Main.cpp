@@ -1,9 +1,12 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/System/Angle.hpp>
 #include <iostream>
 #include <random>
 #include <sstream>
 
 using namespace sf;
+
+const int NUM_BRANCHES = 6;
 
 inline std::mt19937 rng(std::random_device{}());
 
@@ -62,6 +65,34 @@ Font loadRequiredFont(std::string path) {
     }
 }
 
+enum class Side {
+    Left,
+    Right,
+    None,
+};
+
+void updateBranches(std::array<Side, NUM_BRANCHES>& branchPositions) {
+    for (int j = NUM_BRANCHES - 1; j > 0; j--) {
+        branchPositions[j] = branchPositions[j - 1];
+    }
+
+    auto randInt = randomInt(0, 5);
+
+    switch (randInt) {
+        case 0:
+            branchPositions[0] = Side::Left;
+            break;
+
+        case 1:
+            branchPositions[0] = Side::Right;
+            break;
+
+        default:
+            branchPositions[0] = Side::None;
+            break;
+    }
+}
+
 int main() {
     auto window = RenderWindow{VIDEO_MODE, "Timber!!!", Style::Close};
     window.setFramerateLimit(144);
@@ -80,6 +111,9 @@ int main() {
     textures[(int)TextureId::Log] = loadRequiredTexture("graphics/log.png");
     textures[(int)TextureId::Headstone] =
         loadRequiredTexture("graphics/rip.png");
+
+    // Load fonts
+    Font font = loadRequiredFont("fonts/KOMIKAP_.ttf");
 
     // Background image
     auto backgroundImageSprite = Sprite{textures[(int)TextureId::Background]};
@@ -134,11 +168,6 @@ int main() {
     float timeRemaining = 6.0f;
     float timeBarWidthPerSecond = timeBarStartWidth / timeRemaining;
 
-    bool paused{true};
-    int score{0};
-
-    Font font = loadRequiredFont("fonts/KOMIKAP_.ttf");
-
     Text messageText{font, "Press Enter to start!", 75};
     Text scoreText{font, "Score = 0", 100};
 
@@ -150,6 +179,27 @@ int main() {
     messageText.setPosition({1920.0 / 2.0f, 1080.0 / 2.0f});
 
     scoreText.setPosition({20, 20});
+
+    // Game State Variables
+    bool paused{true};
+    int score{0};
+    std::array<Side, NUM_BRANCHES> branchPositions;
+    std::array<Sprite, NUM_BRANCHES> branches = {
+        Sprite{textures[(int)TextureId::Branch]},
+        Sprite{textures[(int)TextureId::Branch]},
+        Sprite{textures[(int)TextureId::Branch]},
+        Sprite{textures[(int)TextureId::Branch]},
+        Sprite{textures[(int)TextureId::Branch]},
+        Sprite{textures[(int)TextureId::Branch]},
+    };
+
+    for (int i = 0; i < NUM_BRANCHES; i++) {
+        branches[i].setPosition({-2000, -2000});
+
+        // The center of the branch so we can spin it without changing it's
+        // position.
+        branches[i].setOrigin({220, 20});
+    }
 
     while (window.isOpen()) {
         // Handle events
@@ -247,9 +297,26 @@ int main() {
                 }
             }
 
+            // Update Score
             std::stringstream ss;
             ss << "Score = " << score;
             scoreText.setString(ss.str());
+
+            // Update branches
+            for (int i = 0; i < NUM_BRANCHES; i++) {
+                float height = i * 150;
+
+                if (branchPositions[i] == Side::Left) {
+                    branches[i].setPosition({610, height});
+                    branches[i].setRotation(degrees(180));
+                } else if (branchPositions[i] == Side::Right) {
+                    branches[i].setPosition({1330, height});
+                    branches[i].setRotation(degrees(0));
+                } else {
+                    // Hide the branch
+                    branches[i].setPosition({3000, height});
+                }
+            }
         }
 
         // Redraw scene
@@ -258,6 +325,11 @@ int main() {
         window.draw(cloud1Sprite);
         window.draw(cloud2Sprite);
         window.draw(cloud3Sprite);
+
+        for (int i = 0; i < NUM_BRANCHES; i++) {
+            window.draw(branches[i]);
+        }
+
         window.draw(treeSprite);
         window.draw(beeSprite);
         window.draw(scoreText);
