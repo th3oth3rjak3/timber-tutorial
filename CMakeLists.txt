@@ -28,24 +28,7 @@ FetchContent_MakeAvailable(SFML)
 # Executable
 # -----------------------------
 add_executable(timber
-        src/BackgroundImage.cpp
-        src/BackgroundImage.hpp
-        src/Bee.cpp
-        src/Bee.hpp
-        src/Cloud.cpp
-        src/Cloud.hpp
-        src/GameObject.cpp
-        src/GameObject.hpp
         src/Main.cpp
-        src/Random.hpp
-        src/Startup.cpp
-        src/Startup.hpp
-        src/StationaryObject.cpp
-        src/StationaryObject.hpp
-        src/TextureManager.cpp
-        src/TextureManager.hpp
-        src/Tree.cpp
-        src/Tree.hpp
 )
 
 target_link_libraries(timber
