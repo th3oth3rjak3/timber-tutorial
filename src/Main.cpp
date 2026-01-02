@@ -1,5 +1,5 @@
+#include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
-#include <SFML/System/Angle.hpp>
 #include <iostream>
 #include <random>
 #include <sstream>
@@ -26,18 +26,20 @@ const VideoMode VIDEO_MODE{WINDOW_SIZE};
 enum class TextureId : int {
     Background,
     Tree,
+    TreeAlt,
     Bee,
     Cloud,
     Player,
     Branch,
     Log,
     Headstone,
+    Axe,
     MaxTextures,
 };
 
-sf::Texture loadRequiredTexture(std::string path) {
+Texture loadRequiredTexture(std::string path) {
     try {
-        sf::Texture newTexture;
+        Texture newTexture;
         if (const auto ok = newTexture.loadFromFile(path); !ok) {
             std::cerr << "Failed to load texture: " << path << "\n";
             std::abort();
@@ -46,6 +48,22 @@ sf::Texture loadRequiredTexture(std::string path) {
         return newTexture;
     } catch (const std::exception& e) {
         std::cerr << "Failed to load texture: " << path << "\n";
+        std::abort();
+    }
+}
+
+SoundBuffer loadRequiredSound(std::string path) {
+    try {
+        SoundBuffer newBuffer;
+        if (const auto ok = newBuffer.loadFromFile(path); !ok) {
+            std::cerr << "Failed to load sound: " << path << "\n";
+            std::abort();
+        }
+
+        return newBuffer;
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << "\n";
+        std::cerr << "Failed to load sound: " << path << "\n";
         std::abort();
     }
 }
@@ -111,6 +129,9 @@ int main() {
     textures[(int)TextureId::Log] = loadRequiredTexture("graphics/log.png");
     textures[(int)TextureId::Headstone] =
         loadRequiredTexture("graphics/rip.png");
+    textures[(int)TextureId::Axe] = loadRequiredTexture("graphics/axe.png");
+    textures[(int)TextureId::TreeAlt] =
+        loadRequiredTexture("graphics/tree2.png");
 
     // Load fonts
     Font font = loadRequiredFont("fonts/KOMIKAP_.ttf");
@@ -153,6 +174,56 @@ int main() {
     auto treeSprite = Sprite{textures[(int)TextureId::Tree]};
     treeSprite.setPosition({810, 0});
 
+    // Background Tree Setup
+    auto treeSprite2 = Sprite{textures[(int)TextureId::TreeAlt]};
+    auto treeSprite3 = Sprite{textures[(int)TextureId::TreeAlt]};
+    auto treeSprite4 = Sprite{textures[(int)TextureId::TreeAlt]};
+    auto treeSprite5 = Sprite{textures[(int)TextureId::TreeAlt]};
+    auto treeSprite6 = Sprite{textures[(int)TextureId::TreeAlt]};
+
+    treeSprite2.setPosition({300, -50});
+    treeSprite3.setPosition({20, 0});
+    treeSprite4.setPosition({1500, -40});
+    treeSprite5.setPosition({1300, -25});
+    treeSprite6.setPosition({1900, 0});
+
+    // Player Setup
+    auto playerSprite = Sprite{textures[(int)TextureId::Player]};
+    playerSprite.setPosition({580, 720});
+    auto playerSide = Side::Left;
+
+    // Headstone Setup
+    auto headstoneSprite = Sprite{textures[(int)TextureId::Headstone]};
+    headstoneSprite.setPosition({600, 860});
+
+    // Axe Setup
+    auto axeSprite = Sprite{textures[(int)TextureId::Axe]};
+    axeSprite.setPosition({700, 830});
+    const int AXE_POSITION_LEFT = 700;
+    const int AXE_POSITION_RIGHT = 1075;
+
+    // Flying Log Setup
+    auto logSprite = Sprite{textures[(int)TextureId::Log]};
+    logSprite.setPosition({810, 720});
+    auto logActive = bool{false};
+    auto logSpeedX = float{1000};
+    auto logSpeedY = float{-1500};
+
+    // Input Detection
+    auto acceptInput = bool{false};
+
+    // Prepare Sound Buffers
+    auto chopBuffer = loadRequiredSound("sounds/chop.wav");
+    auto outOfTimeBuffer = loadRequiredSound("sounds/out_of_time.wav");
+    auto deathBuffer = loadRequiredSound("sounds/death.wav");
+
+    Sound chop = Sound{chopBuffer};
+    chop.setVolume(60);
+    Sound death = Sound{deathBuffer};
+    death.setVolume(40);
+    Sound outOfTime = Sound{outOfTimeBuffer};
+    outOfTime.setVolume(40);
+
     Clock clock;
 
     // Time bar for player countdown
@@ -179,6 +250,13 @@ int main() {
     messageText.setPosition({1920.0 / 2.0f, 1080.0 / 2.0f});
 
     scoreText.setPosition({20, 20});
+
+    // Backgrounds for the text
+    RectangleShape rect1;
+    rect1.setFillColor(sf::Color(0, 0, 0, 150));
+    auto bounds = scoreText.getLocalBounds();
+    rect1.setSize({bounds.size.x + 50, 105});
+    rect1.setPosition({0, 30});
 
     // Game State Variables
     bool paused{true};
@@ -208,26 +286,66 @@ int main() {
                 window.close();
             }
 
-            auto keypress = event->getIf<Event::KeyPressed>();
-            if (keypress != nullptr) {
-                switch (keypress->code) {
-                    case Keyboard::Key::Escape:
-                        window.close();
-                        break;
-                    case Keyboard::Key::Enter:
-                        paused = false;
-                        timeRemaining = 6.0f;
-                        score = 0;
-                        break;
-                    default:
-                        break;
-                }
+            if (event->is<sf::Event::KeyReleased>()) {
+                acceptInput = true;
+                // hide the axe
+                axeSprite.setPosition({2000, axeSprite.getPosition().y});
             }
+        }
+
+        if (Keyboard::isKeyPressed(Keyboard::Key::Escape)) {
+            window.close();
+        }
+
+        if (Keyboard::isKeyPressed(Keyboard::Key::Enter)) {
+            paused = false;
+            timeRemaining = 6.0f;
+            score = 0;
+            // Hide all branches to start
+            for (int i = 0; i < NUM_BRANCHES; i++) {
+                branchPositions[i] = Side::None;
+            }
+            headstoneSprite.setPosition({675, 2000});
+            playerSprite.setPosition({580, 720});
+            acceptInput = true;
         }
 
         // Update state
         auto dt = clock.restart();
         if (!paused) {
+            if (acceptInput) {
+                if (Keyboard::isKeyPressed(Keyboard::Key::Right)) {
+                    playerSide = Side::Right;
+                    score++;
+                    timeRemaining += (int)(2 / score);
+                    timeRemaining += 0.15;
+                    axeSprite.setPosition(
+                        {AXE_POSITION_RIGHT, axeSprite.getPosition().y});
+                    playerSprite.setPosition({1200, 720});
+                    updateBranches(branchPositions);
+                    logSprite.setPosition({810, 720});
+                    logSpeedX = -5000;
+                    logActive = true;
+                    acceptInput = false;
+                    chop.play();
+                }
+
+                if (Keyboard::isKeyPressed(Keyboard::Key::Left)) {
+                    playerSide = Side::Left;
+                    score++;
+                    timeRemaining += (int)(2 / score) + 0.15;
+                    axeSprite.setPosition(
+                        {AXE_POSITION_LEFT, axeSprite.getPosition().y});
+                    playerSprite.setPosition({580, 720});
+                    updateBranches(branchPositions);
+                    logSprite.setPosition({810, 720});
+                    logSpeedX = 5000;
+                    logActive = true;
+                    acceptInput = false;
+                    chop.play();
+                }
+            }
+
             // Update remaining time
             timeRemaining -= dt.asSeconds();
 
@@ -241,6 +359,7 @@ int main() {
                 FloatRect textRect = messageText.getLocalBounds();
                 messageText.setOrigin(textRect.getCenter());
                 messageText.setPosition({1920.0f / 2.0f, 1080.0f / 2.0f});
+                outOfTime.play();
             }
 
             // Cloud state updates
@@ -301,6 +420,8 @@ int main() {
             std::stringstream ss;
             ss << "Score = " << score;
             scoreText.setString(ss.str());
+            auto bounds = scoreText.getLocalBounds();
+            rect1.setSize({bounds.size.x + 50, rect1.getSize().y});
 
             // Update branches
             for (int i = 0; i < NUM_BRANCHES; i++) {
@@ -317,6 +438,33 @@ int main() {
                     branches[i].setPosition({3000, height});
                 }
             }
+
+            // Handle flying logs
+            if (logActive) {
+                logSprite.setPosition(
+                    {logSprite.getPosition().x + (logSpeedX * dt.asSeconds()),
+                     logSprite.getPosition().y + (logSpeedY * dt.asSeconds())});
+
+                // Has the log reached the edge?
+                if (logSprite.getPosition().x < -100 ||
+                    logSprite.getPosition().x > 2000) {
+                    logActive = false;
+                    logSprite.setPosition({810, 720});
+                }
+            }
+
+            // Cause of player death
+            if (branchPositions[5] == playerSide) {
+                paused = true;
+                acceptInput = false;
+                headstoneSprite.setPosition({525, 760});
+                playerSprite.setPosition({2000, 660});
+                messageText.setString("SQUISHED!!");
+                auto textRect = messageText.getLocalBounds();
+                messageText.setOrigin(textRect.getCenter());
+                messageText.setPosition({1920 / 2.0f, 1080 / 2.0f});
+                death.play();
+            }
         }
 
         // Redraw scene
@@ -326,12 +474,23 @@ int main() {
         window.draw(cloud2Sprite);
         window.draw(cloud3Sprite);
 
+        // window.draw(treeSprite2);
+        window.draw(treeSprite3);
+        window.draw(treeSprite4);
+        // window.draw(treeSprite5);
+        window.draw(treeSprite6);
+
         for (int i = 0; i < NUM_BRANCHES; i++) {
             window.draw(branches[i]);
         }
 
+        window.draw(logSprite);
         window.draw(treeSprite);
+        window.draw(playerSprite);
+        window.draw(axeSprite);
+        window.draw(headstoneSprite);
         window.draw(beeSprite);
+        window.draw(rect1);
         window.draw(scoreText);
 
         window.draw(timeBar);
