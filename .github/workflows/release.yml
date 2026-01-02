@@ -27,94 +27,98 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    # -----------------------------
-    # Install dependencies
-    # -----------------------------
-    - name: Install Linux dependencies
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
-          libudev-dev libgl1-mesa-dev libopenal-dev \
-          libvorbis-dev libflac-dev libfreetype6-dev \
-          curl
+      # -----------------------------
+      # Install Linux dependencies
+      # -----------------------------
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libudev-dev libgl1-mesa-dev libopenal-dev \
+            libvorbis-dev libflac-dev libfreetype6-dev \
+            curl
 
-    # -----------------------------
-    # Configure & build
-    # -----------------------------
-    - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      # -----------------------------
+      # Configure & build
+      # -----------------------------
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-    - name: Build
-      run: cmake --build build --config Release
+      - name: Build
+        run: cmake --build build --config Release
 
-    # -----------------------------
-    # Package Windows
-    # -----------------------------
-    - name: Package Windows
-      if: matrix.os == 'windows-latest'
-      run: |
-        mkdir timber-${{ matrix.name }}
-        cp build/bin/Release/${{ matrix.executable }} timber-${{ matrix.name }}/
-        cp -r graphics sounds fonts timber-${{ matrix.name }}/
-        cp build/_deps/sfml-build/lib/Release/*.dll timber-${{ matrix.name }}/
-        Compress-Archive -Path timber-${{ matrix.name }} -DestinationPath timber-${{ matrix.name }}.zip
+      # -----------------------------
+      # Package Windows
+      # -----------------------------
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir timber-${{ matrix.name }}
+          cp build/bin/Release/${{ matrix.executable }} timber-${{ matrix.name }}/
+          cp -r graphics timber-${{ matrix.name }}/
+          cp -r sounds timber-${{ matrix.name }}/
+          cp -r fonts timber-${{ matrix.name }}/
+          cp build/_deps/sfml-build/lib/Release/*.dll timber-${{ matrix.name }}/
+          Compress-Archive -Path timber-${{ matrix.name }} -DestinationPath timber-${{ matrix.name }}.zip
 
-    # -----------------------------
-    # Package Linux AppImage
-    # -----------------------------
-    - name: Package Linux AppImage
-      if: matrix.os == 'ubuntu-latest'
-      run: bash scripts/package-linux.sh
+      # -----------------------------
+      # Package Linux AppImage
+      # -----------------------------
+      - name: Package Linux AppImage
+        if: matrix.os == 'ubuntu-latest'
+        run: bash scripts/package-linux.sh
 
-    # -----------------------------
-    # Package macOS
-    # -----------------------------
-    - name: Package macOS
-      if: matrix.os == 'macos-latest'
-      run: |
-        mkdir timber-${{ matrix.name }}
-        cp build/bin/${{ matrix.executable }} timber-${{ matrix.name }}/
-        cp -r graphics sounds fonts timber-${{ matrix.name }}/
-        echo '#!/bin/bash' > timber-${{ matrix.name }}/run.sh
-        echo 'cd "$(dirname "$0")"' >> timber-${{ matrix.name }}/run.sh
-        echo './${{ matrix.executable }}' >> timber-${{ matrix.name }}/run.sh
-        chmod +x timber-${{ matrix.name }}/run.sh
-        chmod +x timber-${{ matrix.name }}/${{ matrix.executable }}
-        zip -r timber-${{ matrix.name }}.zip timber-${{ matrix.name }}
+      # -----------------------------
+      # Package macOS
+      # -----------------------------
+      - name: Package macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir timber-${{ matrix.name }}
+          cp build/bin/${{ matrix.executable }} timber-${{ matrix.name }}/
+          cp -r graphics timber-${{ matrix.name }}/
+          cp -r sounds timber-${{ matrix.name }}/
+          cp -r fonts timber-${{ matrix.name }}/
+          echo '#!/bin/bash' > timber-${{ matrix.name }}/run.sh
+          echo 'cd "$(dirname "$0")"' >> timber-${{ matrix.name }}/run.sh
+          echo './${{ matrix.executable }}' >> timber-${{ matrix.name }}/run.sh
+          chmod +x timber-${{ matrix.name }}/run.sh
+          chmod +x timber-${{ matrix.name }}/${{ matrix.executable }}
+          zip -r timber-${{ matrix.name }}.zip timber-${{ matrix.name }}
 
-    # -----------------------------
-    # Upload release assets
-    # -----------------------------
-    - name: Upload Windows Asset
-      if: matrix.os == 'windows-latest'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: timber-windows.zip
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # -----------------------------
+      # Upload Release Asset
+      # -----------------------------
+      - name: Upload Windows Asset
+        if: matrix.os == 'windows-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: timber-windows.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload Linux Asset
-      if: matrix.os == 'ubuntu-latest'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: Timber-x86_64.AppImage
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Linux Asset
+        if: matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: Timber-x86_64.AppImage
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload macOS Asset
-      if: matrix.os == 'macos-latest'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: timber-macos.zip
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload macOS Asset
+        if: matrix.os == 'macos-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: timber-macos.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
