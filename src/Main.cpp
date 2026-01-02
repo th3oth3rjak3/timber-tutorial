@@ -1,12 +1,20 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
+#include <filesystem>
 #include <iostream>
 #include <random>
 #include <sstream>
 
 using namespace sf;
+namespace fs = std::filesystem;
 
 const int NUM_BRANCHES = 6;
+
+// Returns the directory containing the running binary
+inline fs::path getExecutableDir() {
+    // On Linux, /proc/self/exe points to the binary
+    return fs::canonical("/proc/self/exe").parent_path();
+}
 
 inline std::mt19937 rng(std::random_device{}());
 
@@ -39,37 +47,47 @@ enum class TextureId : int {
 
 Texture loadRequiredTexture(std::string path) {
     try {
-        Texture newTexture;
-        if (const auto ok = newTexture.loadFromFile(path); !ok) {
+        sf::Texture tex;
+        fs::path fullPath = getExecutableDir() / path;
+
+        if (!tex.loadFromFile(fullPath.string())) {
             std::cerr << "Failed to load texture: " << path << "\n";
+            std::cerr << "Tried full path: " << fullPath << "\n";
             std::abort();
         }
 
-        return newTexture;
+        return tex;
     } catch (const std::exception& e) {
-        std::cerr << "Failed to load texture: " << path << "\n";
+        std::cerr << "Exception loading texture: " << path << "\n";
+        std::cerr << e.what() << "\n";
         std::abort();
     }
 }
 
 SoundBuffer loadRequiredSound(std::string path) {
     try {
-        SoundBuffer newBuffer;
-        if (const auto ok = newBuffer.loadFromFile(path); !ok) {
+        sf::SoundBuffer buf;
+        fs::path fullPath = getExecutableDir() / path;
+
+        if (!buf.loadFromFile(fullPath.string())) {
             std::cerr << "Failed to load sound: " << path << "\n";
+            std::cerr << "Tried full path: " << fullPath << "\n";
             std::abort();
         }
 
-        return newBuffer;
+        return buf;
     } catch (const std::exception& e) {
+        std::cerr << "Exception loading sound: " << path << "\n";
         std::cerr << e.what() << "\n";
-        std::cerr << "Failed to load sound: " << path << "\n";
         std::abort();
     }
 }
 
 Font loadRequiredFont(std::string path) {
     try {
+        // Prepend the directory of the running binary
+        path = getExecutableDir() / path;
+
         Font font;
         if (const auto ok = font.openFromFile(path); !ok) {
             std::cerr << "Failed to load font: " << path << "\n";
