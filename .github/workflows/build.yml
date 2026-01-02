@@ -8,9 +8,6 @@ on:
   workflow_dispatch:  # Manual trigger
 
 jobs:
-  # -----------------------------
-  # Windows
-  # -----------------------------
   build-windows:
     runs-on: windows-latest
     steps:
@@ -26,7 +23,9 @@ jobs:
         run: |
           mkdir timber-windows
           cp build/bin/Release/timber.exe timber-windows/
-          cp -r graphics sounds fonts timber-windows/
+          cp -r graphics timber-windows/
+          cp -r sounds timber-windows/
+          cp -r fonts timber-windows/
           cp build/_deps/sfml-build/lib/Release/*.dll timber-windows/
 
       - name: Upload artifact
@@ -35,9 +34,6 @@ jobs:
           name: timber-windows
           path: timber-windows/
 
-  # -----------------------------
-  # Linux
-  # -----------------------------
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -67,9 +63,6 @@ jobs:
           name: timber-linux
           path: Timber-x86_64.AppImage
 
-  # -----------------------------
-  # macOS
-  # -----------------------------
   build-macos:
     runs-on: macos-latest
     steps:
@@ -85,8 +78,9 @@ jobs:
         run: |
           mkdir timber-macos
           cp build/bin/timber timber-macos/
-          cp -r graphics sounds fonts timber-macos/
-          # Create a convenience run script
+          cp -r graphics timber-macos/
+          cp -r sounds timber-macos/
+          cp -r fonts timber-macos/
           echo '#!/bin/bash' > timber-macos/run.sh
           echo 'cd "$(dirname "$0")"' >> timber-macos/run.sh
           echo './timber' >> timber-macos/run.sh
