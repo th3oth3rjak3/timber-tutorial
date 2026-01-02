@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
-project(timber LANGUAGES CXX)
+project(timber 
+    VERSION 1.0.0
+    LANGUAGES CXX
+)
 
 # -----------------------------
 # Global build settings
@@ -9,49 +12,54 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # -----------------------------
+# Static linking for Linux
+# -----------------------------
+if(UNIX AND NOT APPLE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+endif()
+
+# -----------------------------
 # SFML (FetchContent)
 # -----------------------------
 include(FetchContent)
-
 FetchContent_Declare(
-        SFML
-        GIT_REPOSITORY https://github.com/SFML/SFML.git
-        GIT_TAG 3.0.2
-        GIT_SHALLOW ON
-        EXCLUDE_FROM_ALL
-        SYSTEM
+    SFML
+    GIT_REPOSITORY https://github.com/SFML/SFML.git
+    GIT_TAG 3.0.2
+    GIT_SHALLOW ON
+    EXCLUDE_FROM_ALL
+    SYSTEM
 )
-
 FetchContent_MakeAvailable(SFML)
 
 # -----------------------------
 # Executable
 # -----------------------------
 add_executable(timber
-        src/Main.cpp
+    src/Main.cpp
 )
 
 target_link_libraries(timber
-        PRIVATE
-        SFML::Graphics
-        SFML::Audio
+    PRIVATE
+    SFML::Graphics
+    SFML::Audio
 )
 
 # -----------------------------
 # Asset directories
 # -----------------------------
 set(ASSET_DIRS
-        graphics
-        sounds
-        fonts
+    graphics
+    sounds
+    fonts
 )
 
-foreach (dir IN LISTS ASSET_DIRS)
+foreach(dir IN LISTS ASSET_DIRS)
     add_custom_command(
-            TARGET timber POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
+        TARGET timber POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/${dir}
             $<TARGET_FILE_DIR:timber>/${dir}
     )
-endforeach ()
-
+endforeach()
