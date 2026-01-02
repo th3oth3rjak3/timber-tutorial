@@ -1,0 +1,79 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on tags like v1.0, v1.1, etc.
+
+jobs:
+  build-and-release:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            executable: timber.exe
+            dll_path: build/_deps/sfml-build/lib/Release/*.dll
+          - os: ubuntu-latest
+            name: linux
+            executable: timber
+            dll_path: ""
+          - os: macos-latest
+            name: macos
+            executable: timber
+            dll_path: ""
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Linux dependencies
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+          libudev-dev libgl1-mesa-dev libopenal-dev \
+          libvorbis-dev libflac-dev
+    
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: cmake --build build --config Release
+    
+    - name: Package Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir timber-${{ matrix.name }}
+        cp build/bin/Release/${{ matrix.executable }} timber-${{ matrix.name }}/
+        cp -r graphics timber-${{ matrix.name }}/
+        cp -r sounds timber-${{ matrix.name }}/
+        cp -r fonts timber-${{ matrix.name }}/
+        cp build/_deps/sfml-build/lib/Release/*.dll timber-${{ matrix.name }}/
+        Compress-Archive -Path timber-${{ matrix.name }} -DestinationPath timber-${{ matrix.name }}.zip
+    
+    - name: Package Linux/macOS
+      if: matrix.os != 'windows-latest'
+      run: |
+        mkdir timber-${{ matrix.name }}
+        cp build/bin/${{ matrix.executable }} timber-${{ matrix.name }}/
+        cp -r graphics timber-${{ matrix.name }}/
+        cp -r sounds timber-${{ matrix.name }}/
+        cp -r fonts timber-${{ matrix.name }}/
+        echo '#!/bin/bash' > timber-${{ matrix.name }}/run.sh
+        echo 'cd "$(dirname "$0")"' >> timber-${{ matrix.name }}/run.sh
+        echo './${{ matrix.executable }}' >> timber-${{ matrix.name }}/run.sh
+        chmod +x timber-${{ matrix.name }}/run.sh
+        chmod +x timber-${{ matrix.name }}/${{ matrix.executable }}
+        zip -r timber-${{ matrix.name }}.zip timber-${{ matrix.name }}
+    
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v1
+      with:
+        files: timber-${{ matrix.name }}.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
