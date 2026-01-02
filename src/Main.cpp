@@ -12,8 +12,20 @@ const int NUM_BRANCHES = 6;
 
 // Returns the directory containing the running binary
 inline fs::path getExecutableDir() {
-    // On Linux, /proc/self/exe points to the binary
+#if defined(_WIN32)
+    char buffer[MAX_PATH];
+    GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+    return fs::path(buffer).parent_path();
+#elif defined(__APPLE__)
+    char buffer[1024];
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) != 0) {
+        throw std::runtime_error("Executable path too long");
+    }
+    return fs::canonical(buffer).parent_path();
+#else  // Linux / Unix
     return fs::canonical("/proc/self/exe").parent_path();
+#endif
 }
 
 inline std::mt19937 rng(std::random_device{}());
