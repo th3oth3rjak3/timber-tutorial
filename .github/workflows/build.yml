@@ -5,107 +5,96 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:  # Manual trigger
 
 jobs:
+  # -----------------------------
+  # Windows
+  # -----------------------------
   build-windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install dependencies
-      run: |
-        # Windows usually has what we need already
-        cmake --version
-    
-    - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
-    
-    - name: Build
-      run: cmake --build build --config Release
-    
-    - name: Package
-      run: |
-        mkdir timber-windows
-        cp build/bin/Release/timber.exe timber-windows/
-        cp -r graphics timber-windows/
-        cp -r sounds timber-windows/
-        cp -r fonts timber-windows/
-        # Copy SFML DLLs
-        cp build/_deps/sfml-build/lib/Release/*.dll timber-windows/
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: timber-windows
-        path: timber-windows/
+      - uses: actions/checkout@v4
 
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package
+        run: |
+          mkdir timber-windows
+          cp build/bin/Release/timber.exe timber-windows/
+          cp -r graphics sounds fonts timber-windows/
+          cp build/_deps/sfml-build/lib/Release/*.dll timber-windows/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: timber-windows
+          path: timber-windows/
+
+  # -----------------------------
+  # Linux
+  # -----------------------------
   build-linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
-          libudev-dev libgl1-mesa-dev libopenal-dev \
-          libvorbis-dev libflac-dev libfreetype6-dev
-    
-    - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
-    
-    - name: Build
-      run: cmake --build build --config Release
-    
-    - name: Package
-      run: |
-        mkdir timber-linux
-        cp build/bin/timber timber-linux/
-        cp -r graphics timber-linux/
-        cp -r sounds timber-linux/
-        cp -r fonts timber-linux/
-        # Create a run script
-        echo '#!/bin/bash' > timber-linux/run.sh
-        echo 'cd "$(dirname "$0")"' >> timber-linux/run.sh
-        echo './timber' >> timber-linux/run.sh
-        chmod +x timber-linux/run.sh
-        chmod +x timber-linux/timber
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: timber-linux
-        path: timber-linux/
+      - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libudev-dev libgl1-mesa-dev libopenal-dev \
+            libvorbis-dev libflac-dev libfreetype6-dev \
+            curl
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Build Linux AppImage
+        run: bash scripts/package-linux.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: timber-linux
+          path: Timber-x86_64.AppImage
+
+  # -----------------------------
+  # macOS
+  # -----------------------------
   build-macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
-    
-    - name: Build
-      run: cmake --build build --config Release
-    
-    - name: Package
-      run: |
-        mkdir timber-macos
-        cp build/bin/timber timber-macos/
-        cp -r graphics timber-macos/
-        cp -r sounds timber-macos/
-        cp -r fonts timber-macos/
-        # Create a run script for convenience
-        echo '#!/bin/bash' > timber-macos/run.sh
-        echo 'cd "$(dirname "$0")"' >> timber-macos/run.sh
-        echo './timber' >> timber-macos/run.sh
-        chmod +x timber-macos/run.sh
-        chmod +x timber-macos/timber
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: timber-macos
-        path: timber-macos/
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package
+        run: |
+          mkdir timber-macos
+          cp build/bin/timber timber-macos/
+          cp -r graphics sounds fonts timber-macos/
+          # Create a convenience run script
+          echo '#!/bin/bash' > timber-macos/run.sh
+          echo 'cd "$(dirname "$0")"' >> timber-macos/run.sh
+          echo './timber' >> timber-macos/run.sh
+          chmod +x timber-macos/run.sh
+          chmod +x timber-macos/timber
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: timber-macos
+          path: timber-macos/

@@ -12,14 +12,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # -----------------------------
-# Static linking for Linux
-# -----------------------------
-if(UNIX AND NOT APPLE)
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-endif()
-
-# -----------------------------
 # SFML (FetchContent)
 # -----------------------------
 include(FetchContent)
@@ -45,6 +37,12 @@ target_link_libraries(timber
     SFML::Graphics
     SFML::Audio
 )
+
+set_target_properties(timber PROPERTIES
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN"
+)
+
 
 # -----------------------------
 # Asset directories
